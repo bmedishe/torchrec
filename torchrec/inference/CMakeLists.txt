@@ -10,7 +10,7 @@ project(inference)
 # This step is crucial to ensure that the
 # _REFLECTION, _GRPC_GRPCPP and _PROTOBUF_LIBPROTOBUF variables are set.
 # e.g. ~/gprc/examples/cpp/cmake/common.cmake
-include(${GRPC_COMMON_CMAKE_PATH}/common.cmake)
+include(${GRPC_COMMON_CMAKE_PATH})
 
 
 # abi and other flags
@@ -38,13 +38,13 @@ include_directories(${PYTORCH_FMT_INCLUDE_PATH})
 set(CMAKE_CXX_STANDARD 17)
 
 # torch deploy library
-
+message("deploy interpreter", ${DEPLOY_INTERPRETER_PATH})
 add_library(torch_deploy_internal STATIC
-    {$DEPLOY_INTERPRETER_PATH}/libtorch_deployinterpreter.o
-    {$DEPLOY_SRC_PATH}/deploy.cpp
-    {$DEPLOY_SRC_PATH}/deploy/loader.cpp
-    {$DEPLOY_SRC_PATH}/path_environment.cpp
-    {$DEPLOY_SRC_PATH}/elf_file.cpp)
+    ${DEPLOY_INTERPRETER_PATH}/libtorch_deployinterpreter.o
+    ${DEPLOY_SRC_PATH}/deploy.cpp
+    ${DEPLOY_SRC_PATH}/loader.cpp
+    ${DEPLOY_SRC_PATH}/path_environment.cpp
+    ${DEPLOY_SRC_PATH}/elf_file.cpp)
 
 # For python builtins. caffe2_interface_library properly
 # makes use of the --whole-archive option.
@@ -68,6 +68,7 @@ add_library(inference SHARED
   src/BatchingQueue.cpp
   src/GPUExecutor.cpp
   src/ResultSplit.cpp
+  src/Exception.cpp
 )
 
 # -rdynamic is needed to link against the static library

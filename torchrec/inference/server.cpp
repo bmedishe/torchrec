@@ -109,11 +109,11 @@ std::unique_ptr<torchrec::PredictionRequest> toTorchRecRequest(
     sparseFeature.lengths = folly::IOBuf{
         folly::IOBuf::COPY_BUFFER,
         encoded_lengths.data(),
-        encoded_lengths.size())};
+        encoded_lengths.size()};
     sparseFeature.values = folly::IOBuf{
         folly::IOBuf::COPY_BUFFER,
         encoded_values.data(),
-        encoded_values.size())};
+        encoded_values.size()};
     sparseFeature.weights = folly::IOBuf{
         folly::IOBuf::COPY_BUFFER,
         encoded_weights.data(),
@@ -239,6 +239,7 @@ int main(int argc, char* argv[]) {
             .toStringRef();
     std::shared_ptr<torchrec::ResultSplitFunc> resultSplitFunc =
         torchrec::TorchRecResultSplitFuncRegistry()->Create(resultMetadata);
+    std::chrono::milliseconds queueTimeout = std::chrono::milliseconds(FLAGS_queue_timeout);
 
     LOG(INFO) << "Creating Model Shard for " << FLAGS_n_gpu << " GPUs.";
     auto dmp = factory.attr("create_predict_module")
@@ -253,7 +254,7 @@ int main(int argc, char* argv[]) {
 
     for (int rank = 0; rank < FLAGS_n_gpu; rank++) {
       auto executor = std::make_unique<torchrec::GPUExecutor>(
-          manager, std::move(models[rank]), rank, FLAGS_n_gpu, resultSplitFunc);
+          manager, std::move(models[rank]), rank, FLAGS_n_gpu, resultSplitFunc, queueTimeout);
       executors.push_back(std::move(executor));
       batchQueueCbs.push_back(
           [&, rank](std::shared_ptr<torchrec::PredictionBatch> batch) {

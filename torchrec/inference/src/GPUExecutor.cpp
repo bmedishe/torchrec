@@ -26,7 +26,6 @@
 #include <torch/csrc/deploy/deploy.h> // @manual
 
 #include "ATen/cuda/CUDAEvent.h"
-#include "caffe2/torch/csrc/autograd/profiler_legacy.h"
 #include "torchrec/inference/BatchingQueue.h"
 #include "torchrec/inference/Exception.h"
 #include "torchrec/inference/Types.h"
@@ -71,7 +70,7 @@ void init_cuda_runtime() {
 }
 
 // Enable NVTX tracing for the caller thread if the flag is set.
-void enable_nvtx_tracing() {
+/*void enable_nvtx_tracing() {
   thread_local static bool emit = false;
   if (FLAGS_emit_nsys_nvtx && emit == false) {
     torch::autograd::profiler::enableProfilerLegacy(
@@ -79,7 +78,7 @@ void enable_nvtx_tracing() {
             torch::autograd::profiler::ProfilerState::NVTX, false, false));
     emit = true;
   }
-}
+}*/
 } // namespace
 
 GPUExecutor::GPUExecutor(
@@ -104,9 +103,9 @@ GPUExecutor::GPUExecutor(
     LOG(INFO) << "Starting Thread " << i << " for Model Shard Rank " << rank_
               << ", as Global thread: " << rank * num_threads_per_gpu + i;
     processThreads_.emplace_back([this, rank, num_threads_per_gpu, i] {
-      if (FLAGS_emit_nsys_nvtx) {
+      /*if (FLAGS_emit_nsys_nvtx) {
         enable_nvtx_tracing();
-      }
+      }*/
       process(rank * num_threads_per_gpu + i);
     });
   }
