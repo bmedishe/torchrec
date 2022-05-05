@@ -88,7 +88,7 @@ Replace these variables with the relevant paths in your system. Check `CMakeList
 export FOLLY_CMAKE_DIR="~/folly-build/installed/folly/lib/cmake/folly"
 export FMT_CMAKE_DIR="~/folly-build/installed/fmt-dGmDTkdcPS1pyvm65J7UcKzxzLonWCKaaxWmgYpScUw/lib/cmake/fmt"
 export INFERENCE_CMAKE_PREFIX_PATH=
-"$(python -c 'import torch.utils; print(torch.utils.cmake_prefix_path)');$FOLLY_CMAKE_DIR;"
+"$(python -c 'import torch.utils; print(torch.utils.cmake_prefix_path)');$FOLLY_CMAKE_DIR;$FMT_CMAKE_DIR"
 
 #  provide fmt from pytorch for torch deploy
 export PYTORCH_FMT_INCLUDE_PATH="~/repos/pytorch/third_party/fmt/include/"
@@ -168,7 +168,7 @@ cmake -S . -B build/ \
 -DDEPLOY_INTERPRETER_PATH="$DEPLOY_INTERPRETER_PATH" \
 -DDEPLOY_SRC_PATH="$DEPLOY_INTERPRETER_PATH" \
 -DGRPC_COMMON_CMAKE_PATH="$GRPC_COMMON_CMAKE_PATH" \
--DGRPC_HEADER_INCLUDE_PATH="$GRPC_HEADER_INCLUDE_PATH"
+-DGRPC_HEADER_INCLUDE_PATH="$GRPC_HEADER_INCLUDE_PATH" \
 -DFBGEMM_LIB="$FBGEMM_LIB"
 
 cd build
