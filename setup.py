@@ -114,15 +114,15 @@ def main(argv: List[str]) -> None:
             )
             print(out)
 
-        # the path to find all the packages
-        fbgemm_install_base = glob.glob(
-            "third_party/fbgemm/fbgemm_gpu/_skbuild/*/cmake-install"
-        )[0]
-        packages.extend(find_packages(fbgemm_install_base))
-        # to include the fbgemm_gpu.so
-        fbgemm_gpu_package_dir = glob.glob(
-            "third_party/fbgemm/fbgemm_gpu/_skbuild/*/cmake-install/fbgemm_gpu"
-        )[0]
+            # the path to find all the packages
+            fbgemm_install_base = glob.glob(
+                "third_party/fbgemm/fbgemm_gpu/_skbuild/*/cmake-install"
+            )[0]
+            packages.extend(find_packages(fbgemm_install_base))
+            # to include the fbgemm_gpu.so
+            fbgemm_gpu_package_dir = glob.glob(
+                "third_party/fbgemm/fbgemm_gpu/_skbuild/*/cmake-install/fbgemm_gpu"
+            )[0]
 
     sys.argv = [sys.argv[0]] + unknown
     print("sys.argv", sys.argv)
