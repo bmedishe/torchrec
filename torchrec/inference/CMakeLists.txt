@@ -7,6 +7,19 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 project(inference)
 
+if(EXISTS "/usr/bin/nvidia-smi")
+  message("NVIDIA GPU detected.")
+  option(USE_CUDA "Use CUDA" ON)
+  option(USE_ROCM "Use ROCm" OFF)
+elseif(EXISTS "/opt/rocm/bin/rocm-smi")
+  message("AMD GPU detected.")
+  option(USE_CUDA "Use CUDA" OFF)
+  option(USE_ROCM "Use ROCm" ON)
+else()
+  message("Unable to detect GPU vendor")
+  message(FATAL_ERROR "")
+endif()
+
 # This step is crucial to ensure that the
 # _REFLECTION, _GRPC_GRPCPP and _PROTOBUF_LIBPROTOBUF variables are set.
 # e.g. ~/gprc/examples/cpp/cmake/common.cmake
@@ -33,18 +46,26 @@ find_package(gflags REQUIRED)
 set(TORCHREC ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 set(THIRDPARTY ${TORCHREC}/third_party)
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${THIRDPARTY}/hipify_torch/cmake")
-include(Hipify)
-list (APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
-set(CMAKE_MODULE_PATH ${HIP_PATH}/cmake ${CMAKE_MODULE_PATH})
+if(USE_ROCM)
+  if(NOT DEFINED ENV{PYTORCH_ROCM_ARCH})
+    SET(TORCHREC_ROCM_ARCH gfx900;gfx906;gfx908;gfx90a)
+  else()
+    SET(TORCHREC_ROCM_ARCH $ENV{PYTORCH_ROCM_ARCH})
+  endif()
+  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${THIRDPARTY}/hipify_torch/cmake")
+  include(Hipify)
+  list (APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+  set(CMAKE_MODULE_PATH ${HIP_PATH}/cmake ${CMAKE_MODULE_PATH})
 
-find_package(rocBLAS REQUIRED)
-find_package(hipFFT REQUIRED)
-find_package(hipRAND REQUIRED)
-find_package(rocRAND REQUIRED)
-find_package(hipSPARSE REQUIRED)
-find_package(OpenMP REQUIRED)
-find_package(rocPRIM REQUIRED)
+  find_package(rocBLAS REQUIRED)
+  find_package(hipFFT REQUIRED)
+  find_package(hipRAND REQUIRED)
+  find_package(rocRAND REQUIRED)
+  find_package(hipSPARSE REQUIRED)
+  find_package(OpenMP REQUIRED)
+  find_package(rocPRIM REQUIRED)
+  message(STATUS "hip found ${ROCM_FOUND}")
+endif()
 
 include_directories(${Torch_INCLUDE_DIRS})
 include_directories(${folly_INCLUDE_DIRS})
@@ -84,13 +105,23 @@ include_directories(include/)
 include_directories(gen/)
 
 # define our library target
-add_library(inference SHARED
-  src/Batching_hip.cpp
-  src/BatchingQueue_hip.cpp
-  src/GPUExecutor_hip.cpp
-  src/ResultSplit_hip.cpp
-  src/Exception_hip.cpp
-)
+if(USE_CUDA)
+  add_library(inference SHARED
+    src/Batching.cpp
+    src/BatchingQueue.cpp
+    src/GPUExecutor.cpp
+    src/ResultSplit.cpp
+    src/Exception.cpp
+  )
+elseif(USE_ROCM)
+  add_library(inference SHARED
+    src/Batching_hip.cpp
+    src/BatchingQueue_hip.cpp
+    src/GPUExecutor_hip.cpp
+    src/ResultSplit_hip.cpp
+    src/Exception_hip.cpp
+  )
+endif()
 
 # -rdynamic is needed to link against the static library
 target_link_libraries(inference "-Wl,--no-as-needed -rdynamic"
@@ -119,8 +150,12 @@ target_link_libraries(pred_grpc_proto
   ${_PROTOBUF_LIBPROTOBUF})
 
 # server
+if(USE_CUDA)
+  add_executable(server server.cpp)
+elseif(USE_ROCM)
+  add_executable(server server_hip.cpp)
+endif()
 
-add_executable(server server_hip.cpp)
 target_link_libraries(server
   inference
   pred_grpc_proto
