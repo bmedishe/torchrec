@@ -10,7 +10,7 @@ project(inference)
 # This step is crucial to ensure that the
 # _REFLECTION, _GRPC_GRPCPP and _PROTOBUF_LIBPROTOBUF variables are set.
 # e.g. ~/gprc/examples/cpp/cmake/common.cmake
-include(${GRPC_COMMON_CMAKE_PATH})
+include(${GRPC_COMMON_CMAKE_PATH}/common.cmake)
 
 
 # abi and other flags
@@ -30,6 +30,21 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 find_package(Torch REQUIRED)
 find_package(folly REQUIRED)
 find_package(gflags REQUIRED)
+set(TORCHREC ${CMAKE_CURRENT_SOURCE_DIR}/../../)
+set(THIRDPARTY ${TORCHREC}/third_party)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${THIRDPARTY}/hipify_torch/cmake")
+include(Hipify)
+list (APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+set(CMAKE_MODULE_PATH ${HIP_PATH}/cmake ${CMAKE_MODULE_PATH})
+
+find_package(rocBLAS REQUIRED)
+find_package(hipFFT REQUIRED)
+find_package(hipRAND REQUIRED)
+find_package(rocRAND REQUIRED)
+find_package(hipSPARSE REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(rocPRIM REQUIRED)
 
 include_directories(${Torch_INCLUDE_DIRS})
 include_directories(${folly_INCLUDE_DIRS})
@@ -40,7 +55,7 @@ set(CMAKE_CXX_STANDARD 17)
 # torch deploy library
 message("deploy interpreter", ${DEPLOY_INTERPRETER_PATH})
 add_library(torch_deploy_internal STATIC
-    ${DEPLOY_INTERPRETER_PATH}/libtorch_deployinterpreter.o
+    ${DEPLOY_INTERPRETER_PATH}
     ${DEPLOY_SRC_PATH}/deploy.cpp
     ${DEPLOY_SRC_PATH}/loader.cpp
     ${DEPLOY_SRC_PATH}/path_environment.cpp
@@ -55,7 +70,13 @@ target_link_libraries(torch_deploy_internal
   PUBLIC shm torch ${PYTORCH_LIB_FMT}
 )
 caffe2_interface_library(torch_deploy_internal torch_deploy)
-
+# hipify code 
+set(header_include_dir
+${CMAKE_CURRENT_SOURCE_DIR}/include
+${CMAKE_CURRENT_SOURCE_DIR}/src
+${CMAKE_CURRENT_SOURCE_DIR}
+)
+hipify(CUDA_SOURCE_DIR ${PROJECT_SOURCE_DIR} HEADER_INCLUDE_DIR ${header_include_dir})
 # inference library
 
 # for our own header files
@@ -64,11 +85,11 @@ include_directories(gen/)
 
 # define our library target
 add_library(inference SHARED
-  src/Batching.cpp
-  src/BatchingQueue.cpp
-  src/GPUExecutor.cpp
-  src/ResultSplit.cpp
-  src/Exception.cpp
+  src/Batching_hip.cpp
+  src/BatchingQueue_hip.cpp
+  src/GPUExecutor_hip.cpp
+  src/ResultSplit_hip.cpp
+  src/Exception_hip.cpp
 )
 
 # -rdynamic is needed to link against the static library
@@ -99,7 +120,7 @@ target_link_libraries(pred_grpc_proto
 
 # server
 
-add_executable(server server.cpp)
+add_executable(server server_hip.cpp)
 target_link_libraries(server
   inference
   pred_grpc_proto

@@ -2,3 +2,6 @@
 	path = third_party/fbgemm
 	url = https://github.com/pytorch/FBGEMM.git
 	branch = main
+[submodule "third_party/hipify_torch"]
+	path = third_party/hipify_torch
+	url = https://github.com/ROCmSoftwarePlatform/hipify_torch.git
